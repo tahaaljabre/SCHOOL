@@ -17,7 +17,8 @@ export async function GET(){
 export async function PUT(request:Request){
  try{const auth=await requireSchoolAdmin();if(auth.error)return auth.error;const p=await request.json() as Record<string,unknown>,action=text(p.action,30);
   if(action==="settings"){
-   await auth.db.prepare("UPDATE public_home_settings SET hero_title=?,hero_text=?,manager_name=?,manager_role=?,manager_phone=?,manager_image_url=?,ticker_text=?,updated_at=CURRENT_TIMESTAMP WHERE id=1").bind(text(p.heroTitle,120),text(p.heroText,500),text(p.managerName,120),text(p.managerRole,80)||"مدير المدرسة",text(p.managerPhone,40),text(p.managerImageUrl,1000),text(p.tickerText,500)).run();
+   const tickerSpeed=Math.min(60,Math.max(5,Number(p.tickerSpeed)||23)),tickerGap=Math.min(20,Math.max(0,Number(p.tickerGap)||0));
+   await auth.db.prepare("UPDATE public_home_settings SET hero_title=?,hero_text=?,manager_name=?,manager_role=?,manager_phone=?,manager_image_url=?,ticker_text=?,ticker_speed_seconds=?,ticker_gap_seconds=?,updated_at=CURRENT_TIMESTAMP WHERE id=1").bind(text(p.heroTitle,120),text(p.heroText,500),text(p.managerName,120),text(p.managerRole,80)||"مدير المدرسة",text(p.managerPhone,40),text(p.managerImageUrl,1000),text(p.tickerText,1200),tickerSpeed,tickerGap).run();
   }else if(action==="create"||action==="update"){
    const itemType=text(p.itemType,20),title=text(p.title,160);if(!types.includes(itemType)||title.length<2)return Response.json({error:"اختر نوع البطاقة واكتب عنوانًا واضحًا"},{status:400});
    let imageUrl=text(p.imageUrl,4000),mediaUrl=text(p.mediaUrl,1000);if(!mediaUrl&&/(?:youtu\.be|youtube\.com)/i.test(imageUrl)){mediaUrl=imageUrl;imageUrl="";}const values=[itemType,title,text(p.body,2400),imageUrl,mediaUrl,text(p.achieverPercentage,20),text(p.achieverAverage,20),text(p.achieverRank,80),Number(p.sortOrder)||0,Boolean(p.published)?1:0];

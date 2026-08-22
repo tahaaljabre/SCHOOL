@@ -22,6 +22,8 @@ type Home = {
   manager_phone?: string;
   manager_image_url?: string;
   ticker_text?: string;
+  ticker_speed_seconds?: number;
+  ticker_gap_seconds?: number;
 };
 type Item = {
   id: number;
@@ -51,7 +53,9 @@ export default function PublicLanding() {
     [items, setItems] = useState<Item[]>([]),
     [ann, setAnn] = useState<Array<{ title: string; body: string }>>([]),
     [preview, setPreview] = useState<{ src: string; alt: string } | null>(null),
-    [tickerIndex, setTickerIndex] = useState(0);
+    [tickerIndex, setTickerIndex] = useState(0),
+    [tickerVisible, setTickerVisible] = useState(true),
+    [tickerCycle, setTickerCycle] = useState(0);
   useEffect(() => {
     fetch("/api/public")
       .then((r) => r.json())
@@ -63,7 +67,9 @@ export default function PublicLanding() {
       });
   }, []);
   const tickerMessages=(home.ticker_text||"").split(/\r?\n|\|/).map(x=>x.trim()).filter(Boolean);
-  useEffect(()=>{setTickerIndex(0);if(tickerMessages.length<2)return;const timer=setInterval(()=>setTickerIndex(i=>(i+1)%tickerMessages.length),25000);return()=>clearInterval(timer)},[home.ticker_text]);
+  const tickerSpeed=Math.min(60,Math.max(5,Number(home.ticker_speed_seconds)||23)),tickerGap=Math.min(20,Math.max(0,home.ticker_gap_seconds==null?2:Number(home.ticker_gap_seconds)));
+  useEffect(()=>{setTickerIndex(0);setTickerCycle(0);setTickerVisible(true)},[home.ticker_text]);
+  useEffect(()=>{if(!tickerMessages.length)return;setTickerVisible(true);const hide=setTimeout(()=>setTickerVisible(false),tickerSpeed*1000),next=setTimeout(()=>{setTickerIndex(i=>(i+1)%tickerMessages.length);setTickerCycle(c=>c+1);setTickerVisible(true)},(tickerSpeed+tickerGap)*1000);return()=>{clearTimeout(hide);clearTimeout(next)}},[tickerIndex,tickerCycle,home.ticker_text,tickerSpeed,tickerGap]);
   const location = [
       school.area,
       school.district,
@@ -151,7 +157,7 @@ export default function PublicLanding() {
       {home.ticker_text && (
         <div className="school-ticker">
           <strong>تنويه المدرسة</strong>
-          <span key={tickerIndex}>{tickerMessages[tickerIndex]||home.ticker_text}</span>
+          {tickerVisible&&<span key={`${tickerIndex}-${tickerCycle}`} style={{animationDuration:`${tickerSpeed}s`}}>{tickerMessages[tickerIndex]||home.ticker_text}</span>}
         </div>
       )}
       <section id="home" className="public-hero premium-hero">
