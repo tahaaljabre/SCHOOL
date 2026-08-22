@@ -16,7 +16,8 @@ export async function signInExternal(identifier:string,password:string,type:stri
   }
   if(!validUrl()||!publicKey())throw new Error("رابط Supabase المحلي غير صحيح. ضع رابط المشروع الذي ينتهي بـ supabase.co ثم أعد تشغيل الموقع المحلي.");
   const cleanIdentifier=identifier.trim().toLowerCase(),email=cleanIdentifier.includes("@")?cleanIdentifier:type==="student"?studentEmail(cleanIdentifier):type==="staff"?staffEmail(cleanIdentifier):type==="parent"?parentEmail(cleanIdentifier):cleanIdentifier;
-  const response=await call("/auth/v1/token?grant_type=password",publicKey(),{method:"POST",body:JSON.stringify({email,password})});
+  let response=await call("/auth/v1/token?grant_type=password",publicKey(),{method:"POST",body:JSON.stringify({email,password})});
+  if(!response.ok&&type==="parent"&&!cleanIdentifier.includes("@"))response=await call("/auth/v1/token?grant_type=password",publicKey(),{method:"POST",body:JSON.stringify({email:parentEmail(`parent${cleanIdentifier}`),password})});
   const data=await response.json() as Record<string,unknown>;
   if(!response.ok)throw new Error("اسم الدخول أو كلمة المرور غير صحيحة");
   return data as {access_token:string;refresh_token:string;expires_in:number;user:{id:string;email:string}};
