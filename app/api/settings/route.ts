@@ -1,14 +1,8 @@
-import { getChatGPTUser } from "../../chatgpt-auth";
-import { ensureCoreSchema } from "../../../db/core";
+import { requireSchoolAdmin } from "../../../db/authorization";
 const editable=["schoolName","shortName","logoUrl","country","governorate","district","area","address","phone","email","principalName","currency","timezone","dateMode","primaryColor","academicYear","currentTerm"] as const;
 const columns:Record<(typeof editable)[number],string>={schoolName:"school_name",shortName:"short_name",logoUrl:"logo_url",country:"country",governorate:"governorate",district:"district",area:"area",address:"address",phone:"phone",email:"email",principalName:"principal_name",currency:"currency",timezone:"timezone",dateMode:"date_mode",primaryColor:"primary_color",academicYear:"academic_year",currentTerm:"current_term"};
 async function currentAdmin(){
- const db=await ensureCoreSchema(),identity=await getChatGPTUser(),dev=process.env.NODE_ENV!=="production";
- const user=identity??(dev?{userId:"local-admin",email:"admin@local.school",displayName:"مدير المدرسة",fullName:"مدير المدرسة"}:null);
- if(!user)return{db,error:Response.json({error:"يجب تسجيل الدخول"},{status:401})};
- let record=await db.prepare("SELECT id,role,status FROM users WHERE external_user_id=?").bind(user.userId).first<{id:number;role:string;status:string}>();
- if(!record){const count=await db.prepare("SELECT COUNT(*) AS count FROM users").first<{count:number}>();if(Number(count?.count??0)>0)return{db,error:Response.json({error:"الحساب غير مضاف إلى مستخدمي المدرسة"},{status:403})};await db.prepare("INSERT INTO users(external_user_id,email,full_name,role,status) VALUES(?,?,?,?,?)").bind(user.userId,user.email,user.fullName??user.displayName,"SUPER_ADMIN","ACTIVE").run();record=await db.prepare("SELECT id,role,status FROM users WHERE external_user_id=?").bind(user.userId).first<{id:number;role:string;status:string}>();}
- if(!record||record.status!=="ACTIVE"||!["SUPER_ADMIN","ADMIN"].includes(record.role))return{db,error:Response.json({error:"لا تملك صلاحية إدارة إعدادات المدرسة"},{status:403})};return{db,record};
+ return requireSchoolAdmin();
 }
 function mapRow(row:Record<string,unknown>){return Object.fromEntries(editable.map(k=>[k,row[columns[k]]??""]));}
 export async function GET(){try{const auth=await currentAdmin();if(auth.error)return auth.error;const row=await auth.db.prepare("SELECT * FROM school_settings WHERE id=1").first<Record<string,unknown>>();return Response.json({settings:mapRow(row??{})});}catch{return Response.json({error:"تعذر تحميل إعدادات المدرسة"},{status:500});}}

@@ -1,7 +1,7 @@
 import { ensureCoreSchema } from "../../../db/core";
 import { requireSchoolAdmin } from "../../../db/authorization";
 
-const types=["ACHIEVER","NEWS","REPORT","MEDIA"];
+const types=["ACHIEVER","NEWS","REPORT","MEDIA","PHOTO"];
 const text=(value:unknown,max:number)=>String(value??"").trim().slice(0,max);
 
 export async function GET(){

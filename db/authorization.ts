@@ -3,7 +3,7 @@ import { ensureCoreSchema } from "./core";
 import { externalIdentity } from "./external-auth";
 
 export async function requireSchoolUser(){
- const db=await ensureCoreSchema(),identity=(await externalIdentity())??(await getChatGPTUser()),dev=process.env.NODE_ENV!=="production";
+ const db=await ensureCoreSchema(),dev=process.env.NODE_ENV!=="production",identity=(await externalIdentity())??(dev?(await getChatGPTUser()):null);
  const user=identity??(dev?{userId:"local-admin",email:"admin@local.school",displayName:"مدير المدرسة",fullName:"مدير المدرسة"}:null);
  if(!user)return{error:Response.json({error:"يجب تسجيل الدخول"},{status:401})} as const;
  let record=await db.prepare("SELECT id,external_user_id,email,full_name,role,status,username,phone,must_change_password FROM users WHERE external_user_id=? OR email=? LIMIT 1").bind(user.userId,user.email).first<{id:number;external_user_id:string;email:string;full_name:string;role:string;status:string;username:string;phone:string;must_change_password:number}>();
