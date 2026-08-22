@@ -1,6 +1,6 @@
 "use client";
 import {useEffect,useMemo,useState} from "react";
-import PublicScreenSettings from "./PublicScreenSettings";
+import PublicScreenSettings from "./PublicContentSettings";
 import ShiftSwitcher from "./ShiftSwitcher";
 import FormAutofillGuard from "./FormAutofillGuard";
 type Row={name:string;detail:string;status:string;meta:string};
