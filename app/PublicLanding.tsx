@@ -50,7 +50,8 @@ export default function PublicLanding() {
     [home, setHome] = useState<Home>({}),
     [items, setItems] = useState<Item[]>([]),
     [ann, setAnn] = useState<Array<{ title: string; body: string }>>([]),
-    [preview, setPreview] = useState<{ src: string; alt: string } | null>(null);
+    [preview, setPreview] = useState<{ src: string; alt: string } | null>(null),
+    [tickerIndex, setTickerIndex] = useState(0);
   useEffect(() => {
     fetch("/api/public")
       .then((r) => r.json())
@@ -61,6 +62,8 @@ export default function PublicLanding() {
         setAnn(d.announcements || []);
       });
   }, []);
+  const tickerMessages=(home.ticker_text||"").split(/\r?\n|\|/).map(x=>x.trim()).filter(Boolean);
+  useEffect(()=>{setTickerIndex(0);if(tickerMessages.length<2)return;const timer=setInterval(()=>setTickerIndex(i=>(i+1)%tickerMessages.length),25000);return()=>clearInterval(timer)},[home.ticker_text]);
   const location = [
       school.area,
       school.district,
@@ -148,7 +151,7 @@ export default function PublicLanding() {
       {home.ticker_text && (
         <div className="school-ticker">
           <strong>تنويه المدرسة</strong>
-          <span>{home.ticker_text}</span>
+          <span key={tickerIndex}>{tickerMessages[tickerIndex]||home.ticker_text}</span>
         </div>
       )}
       <section id="home" className="public-hero premium-hero">
