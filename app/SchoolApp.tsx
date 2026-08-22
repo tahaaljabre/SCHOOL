@@ -11,9 +11,9 @@ const sectionsByRole: Record<string, string[]> = {
   SUPER_ADMIN: ["dashboard","homepage","my-account","students","parents","teachers","employees","classes","subjects","shifts","relations","accounts","credentials","staff-access","content","attendance","schedule","grades","fees","reports","users","settings"],
   ADMIN: ["dashboard","homepage","my-account","students","parents","teachers","employees","classes","subjects","relations","accounts","credentials","staff-access","content","attendance","schedule","grades","fees","reports","settings"],
   TEACHER: ["dashboard","my-account","classes","content","attendance","schedule","grades"],
-  STUDENT: ["dashboard","my-account","content","schedule","grades","fees"],
-  PARENT: ["dashboard","my-account","content","schedule","grades","fees"],
-  EMPLOYEE: ["dashboard","my-account","fees","reports"]
+  STUDENT: ["dashboard","my-account","content","schedule","grades"],
+  PARENT: ["dashboard","my-account","content","schedule","grades"],
+  EMPLOYEE: ["dashboard","my-account"]
 };
 const people:Record<string,Row[]>={
  students:[{name:"سارة محمد العتيبي",detail:"الصف السادس (أ)",status:"منتظم",meta:"ST-1024"},{name:"يوسف أحمد القحطاني",detail:"الصف الخامس (ب)",status:"منتظم",meta:"ST-1025"},{name:"ليان عبدالله الغامدي",detail:"الصف الرابع (أ)",status:"منتظم",meta:"ST-1026"},{name:"عمر خالد الشهري",detail:"الصف الثالث (ج)",status:"غائب اليوم",meta:"ST-1027"}],
