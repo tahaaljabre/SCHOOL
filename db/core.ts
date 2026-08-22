@@ -28,6 +28,8 @@ export async function ensureCoreSchema(){
   db.prepare(`CREATE TABLE IF NOT EXISTS shifts (id INTEGER PRIMARY KEY AUTOINCREMENT,code TEXT NOT NULL UNIQUE,name TEXT NOT NULL,gender_scope TEXT NOT NULL,starts_at TEXT NOT NULL,ends_at TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'ACTIVE')`),
   db.prepare(`CREATE TABLE IF NOT EXISTS teacher_shifts (teacher_id INTEGER NOT NULL,shift_id INTEGER NOT NULL,PRIMARY KEY(teacher_id,shift_id),FOREIGN KEY(teacher_id) REFERENCES teachers(id),FOREIGN KEY(shift_id) REFERENCES shifts(id))`),
   db.prepare(`CREATE TABLE IF NOT EXISTS shift_admins (user_id INTEGER NOT NULL,shift_id INTEGER NOT NULL,is_primary INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(user_id,shift_id),FOREIGN KEY(user_id) REFERENCES users(id),FOREIGN KEY(shift_id) REFERENCES shifts(id))`),
+  db.prepare(`CREATE TABLE IF NOT EXISTS public_home_settings (id INTEGER PRIMARY KEY,hero_title TEXT NOT NULL DEFAULT '',hero_text TEXT NOT NULL DEFAULT '',manager_name TEXT NOT NULL DEFAULT '',manager_role TEXT NOT NULL DEFAULT 'مدير المدرسة',manager_phone TEXT NOT NULL DEFAULT '',manager_image_url TEXT NOT NULL DEFAULT '',ticker_text TEXT NOT NULL DEFAULT '',updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)`),
+  db.prepare(`CREATE TABLE IF NOT EXISTS public_home_items (id INTEGER PRIMARY KEY AUTOINCREMENT,item_type TEXT NOT NULL,title TEXT NOT NULL,body TEXT NOT NULL DEFAULT '',image_url TEXT NOT NULL DEFAULT '',media_url TEXT NOT NULL DEFAULT '',sort_order INTEGER NOT NULL DEFAULT 0,published INTEGER NOT NULL DEFAULT 1,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)`),
   db.prepare("CREATE INDEX IF NOT EXISTS idx_invoices_student ON invoices(student_id,cancelled_at)"),
   db.prepare("CREATE INDEX IF NOT EXISTS idx_payments_invoice ON payments(invoice_id,reversed_at)"),
   db.prepare("CREATE INDEX IF NOT EXISTS idx_student_grades_student ON student_grades(student_id,assessment_id)"),
@@ -40,6 +42,7 @@ export async function ensureCoreSchema(){
   db.prepare("CREATE INDEX IF NOT EXISTS idx_attendance_date ON attendance_records(attendance_date)"),
  ]);
  await db.prepare(`INSERT OR IGNORE INTO school_settings (id,school_name,short_name,country,governorate,district,area,currency,timezone,date_mode,primary_color,academic_year,current_term) VALUES (1,'مدرسة الصومعه','الصومعه','اليمن','لحج','المفلحي','يافع','YER','Asia/Aden','both','#087b83','1448هـ','الفصل الأول')`).run();
+ await db.prepare("INSERT OR IGNORE INTO public_home_settings(id,hero_title,hero_text,ticker_text) VALUES(1,'معًا نبني جيلاً متميزًا','أهلاً بكم في البوابة الرسمية للمدرسة؛ أخبار موثوقة، إنجازات مضيئة، وتواصل دائم مع الأسرة التعليمية.','مرحبًا بكم في بوابة المدرسة الرسمية')").run();
  await db.prepare("INSERT OR IGNORE INTO shifts(code,name,gender_scope,starts_at,ends_at) VALUES('MORNING','الفترة الصباحية','MALE','07:00','12:30')").run();
  await db.prepare("INSERT OR IGNORE INTO shifts(code,name,gender_scope,starts_at,ends_at) VALUES('EVENING','الفترة المسائية — مدرسة البنات','FEMALE','13:00','17:30')").run();
  await db.batch([

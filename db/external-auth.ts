@@ -2,7 +2,8 @@ import { headers } from "next/headers";
 const url=()=>process.env.SUPABASE_URL?.replace(/\/$/,"")||"";
 const publicKey=()=>process.env.SUPABASE_ANON_KEY||"";
 const serviceKey=()=>process.env.SUPABASE_SERVICE_ROLE_KEY||"";
-export const externalAuthConfigured=()=>Boolean(url()&&publicKey()&&serviceKey());
+const validUrl=()=>{try{const parsed=new URL(url());return parsed.protocol==="https:"&&parsed.hostname.endsWith(".supabase.co");}catch{return false;}};
+export const externalAuthConfigured=()=>Boolean(validUrl()&&publicKey()&&serviceKey());
 export const studentEmail=(username:string)=>`${username.trim().toLowerCase()}@students.alsomah.school`;
 export const staffEmail=(username:string)=>`${username.trim().toLowerCase()}@staff.alsomah.school`;
 export function validPassword(value:string){return value.length>=8&&/[A-Z]/.test(value)&&/[a-z]/.test(value)&&/\d/.test(value);}
@@ -12,7 +13,7 @@ export async function signInExternal(identifier:string,password:string,type:stri
     const token = `mock_${identifier}`;
     return {access_token:token, refresh_token:token, expires_in:3600, user:{id:token, email:`${identifier}@mock.local`}};
   }
-  if(!url()||!publicKey())throw new Error("خدمة الدخول غير مفعلة");
+  if(!validUrl()||!publicKey())throw new Error("رابط Supabase المحلي غير صحيح. ضع رابط المشروع الذي ينتهي بـ supabase.co ثم أعد تشغيل الموقع المحلي.");
   const cleanIdentifier=identifier.trim().toLowerCase(),email=cleanIdentifier.includes("@")?cleanIdentifier:type==="student"?studentEmail(cleanIdentifier):type==="staff"?staffEmail(cleanIdentifier):cleanIdentifier;
   const response=await call("/auth/v1/token?grant_type=password",publicKey(),{method:"POST",body:JSON.stringify({email,password})});
   const data=await response.json() as Record<string,unknown>;
@@ -26,7 +27,7 @@ export async function externalIdentity(){
     const role = token.replace("mock_", "");
     return {userId:token, email:`${role}@mock.local`, displayName:`مستخدم وهمي (${role})`, fullName:`مستخدم وهمي (${role})`};
   }
-  if(!url()||!publicKey())return null;
+  if(!validUrl()||!publicKey())return null;
   const response=await call("/auth/v1/user",publicKey(),{headers:{authorization:`Bearer ${decodeURIComponent(token)}`}});
   if(!response.ok)return null;
   const user=await response.json() as {id:string;email:string;user_metadata?:Record<string,unknown>};
@@ -45,4 +46,20 @@ export async function updateExternalUser(id:string,changes:Record<string,unknown
   const response=await call(`/auth/v1/admin/users/${id}`,serviceKey(),{method:"PUT",body:JSON.stringify(changes)}),data=await response.json() as Record<string,unknown>;
   if(!response.ok)throw new Error(String(data.msg||data.message||"تعذر تحديث الحساب الخارجي"));
   return data;
+}
+
+export async function uploadPublicSchoolFile(file:File){
+ if(!externalAuthConfigured())throw new Error("أضف إعدادات Supabase أولًا");
+ const isImage=file.type.startsWith("image/"),isVideo=file.type.startsWith("video/");
+ if(!isImage&&!isVideo)throw new Error("اختر صورة أو فيديو فقط");
+ const max=isImage?5*1024*1024:15*1024*1024;
+ if(file.size>max)throw new Error(isImage?"حجم الصورة يجب ألا يتجاوز 5 ميجابايت":"حجم الفيديو يجب ألا يتجاوز 15 ميجابايت");
+ const bucket="school-public",bucketResponse=await fetch(`${url()}/storage/v1/bucket`,{method:"POST",headers:{apikey:serviceKey(),authorization:`Bearer ${serviceKey()}`,"content-type":"application/json"},body:JSON.stringify({id:bucket,name:bucket,public:true,file_size_limit:15*1024*1024})});
+ if(!bucketResponse.ok&&bucketResponse.status!==409){const data=await bucketResponse.json().catch(()=>({})) as Record<string,unknown>,message=String(data.message||data.error||"");if(!/already exists|resource already exists|exists/i.test(message))throw new Error(message||"تعذر تجهيز مساحة الملفات");}
+ const visibility=await fetch(`${url()}/storage/v1/bucket/${bucket}`,{method:"PUT",headers:{apikey:serviceKey(),authorization:`Bearer ${serviceKey()}`,"content-type":"application/json"},body:JSON.stringify({public:true,file_size_limit:15*1024*1024})});
+ if(!visibility.ok){const data=await visibility.json().catch(()=>({})) as Record<string,unknown>;throw new Error(String(data.message||"تعذر جعل الصور متاحة للعرض"));}
+ const extension=(file.name.split(".").pop()|| (isImage?"jpg":"mp4")).replace(/[^a-zA-Z0-9]/g,"").slice(0,8),path=`${isImage?"images":"videos"}/${Date.now()}-${crypto.randomUUID().slice(0,8)}.${extension}`;
+ const response=await fetch(`${url()}/storage/v1/object/${bucket}/${path}`,{method:"POST",headers:{apikey:serviceKey(),authorization:`Bearer ${serviceKey()}`,"content-type":file.type||"application/octet-stream","x-upsert":"false"},body:await file.arrayBuffer()});
+ if(!response.ok){const data=await response.json().catch(()=>({}));throw new Error(String((data as Record<string,unknown>).message||"تعذر رفع الملف"));}
+ return `${url()}/storage/v1/object/public/${bucket}/${path}`;
 }
