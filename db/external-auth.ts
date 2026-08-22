@@ -65,10 +65,8 @@ export async function uploadPublicSchoolFile(file:File){
  if(!isImage&&!isVideo)throw new Error("اختر صورة أو فيديو فقط");
  const max=100*1024*1024;
  if(file.size>max)throw new Error(isImage?"تعذر رفع الصورة لأنها تتجاوز الحد التقني للاستضافة (100 ميجابايت)":"حجم الفيديو يجب ألا يتجاوز 100 ميجابايت");
- const bucket="school-public",bucketResponse=await fetch(`${url()}/storage/v1/bucket`,{method:"POST",headers:{apikey:serviceKey(),authorization:`Bearer ${serviceKey()}`,"content-type":"application/json"},body:JSON.stringify({id:bucket,name:bucket,public:true,file_size_limit:100*1024*1024})});
+ const bucket="school-public",bucketResponse=await fetch(`${url()}/storage/v1/bucket`,{method:"POST",headers:{apikey:serviceKey(),authorization:`Bearer ${serviceKey()}`,"content-type":"application/json"},body:JSON.stringify({id:bucket,name:bucket,public:true,file_size_limit:100*1024*1024,allowed_mime_types:["image/*","video/*"]})});
  if(!bucketResponse.ok&&bucketResponse.status!==409){const data=await bucketResponse.json().catch(()=>({})) as Record<string,unknown>,message=String(data.message||data.error||"");if(!/already exists|resource already exists|exists/i.test(message))throw new Error(message||"تعذر تجهيز مساحة الملفات");}
- const visibility=await fetch(`${url()}/storage/v1/bucket/${bucket}`,{method:"PUT",headers:{apikey:serviceKey(),authorization:`Bearer ${serviceKey()}`,"content-type":"application/json"},body:JSON.stringify({public:true,file_size_limit:100*1024*1024})});
- if(!visibility.ok){const data=await visibility.json().catch(()=>({})) as Record<string,unknown>;throw new Error(String(data.message||"تعذر جعل الصور متاحة للعرض"));}
  const extension=(file.name.split(".").pop()|| (isImage?"jpg":"mp4")).replace(/[^a-zA-Z0-9]/g,"").slice(0,8),path=`${isImage?"images":"videos"}/${Date.now()}-${crypto.randomUUID().slice(0,8)}.${extension}`;
  const response=await fetch(`${url()}/storage/v1/object/${bucket}/${path}`,{method:"POST",headers:{apikey:serviceKey(),authorization:`Bearer ${serviceKey()}`,"content-type":file.type||"application/octet-stream","x-upsert":"false"},body:await file.arrayBuffer()});
  if(!response.ok){const data=await response.json().catch(()=>({}));throw new Error(String((data as Record<string,unknown>).message||"تعذر رفع الملف"));}
