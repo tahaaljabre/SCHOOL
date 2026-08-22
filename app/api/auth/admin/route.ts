@@ -1,15 +1,15 @@
 import { requireSchoolAdmin } from "../../../../db/authorization";
-import { createExternalUser, externalAuthConfigured, staffEmail, studentEmail, updateExternalUser, validPassword } from "../../../../db/external-auth";
+import { createExternalUser, externalAuthConfigured, parentEmail, staffEmail, studentEmail, updateExternalUser, validPassword } from "../../../../db/external-auth";
 export async function GET(){const auth=await requireSchoolAdmin();if(auth.error)return auth.error;const users=await auth.db.prepare("SELECT id,full_name name,role,username,email FROM users WHERE status='ACTIVE' ORDER BY full_name").all();return Response.json({configured:externalAuthConfigured(),users:users.results,currentUserId:auth.record.id,currentRole:auth.record.role});}
 export async function POST(request:Request){try{
  const auth=await requireSchoolAdmin();if(auth.error)return auth.error;
- const p=await request.json() as Record<string,unknown>,role=String(p.role||""),username=String(p.username||"").trim(),password=String(p.password||""),fullName=String(p.fullName||"").trim(),phone=String(p.phone||"").trim(),entityId=Number(p.entityId);
+ const p=await request.json() as Record<string,unknown>,role=String(p.role||""),providedUsername=String(p.username||"").trim(),password=String(p.password||""),fullName=String(p.fullName||"").trim(),phone=String(p.phone||"").trim(),entityId=Number(p.entityId),username=role==="PARENT"?(providedUsername||`parent${phone.replace(/\D/g,"")||entityId}`.toLowerCase()):providedUsername;
  if(role==="ADMIN"&&auth.record.role!=="SUPER_ADMIN")return Response.json({error:"مدير النظام فقط يستطيع إنشاء نائب مدير"},{status:403});
- const staff=["TEACHER","ADMIN"].includes(role),email=role==="STUDENT"?studentEmail(username):staff?staffEmail(username):String(p.email||"").trim().toLowerCase();
- if(!["STUDENT","PARENT","TEACHER","ADMIN"].includes(role)||fullName.split(/\s+/).length<3||!validPassword(password)||(!entityId&&role!=="ADMIN")||(role!=="PARENT"&&!/^[A-Za-z0-9._-]{3,30}$/.test(username))||(role==="PARENT"&&!email.includes("@")))return Response.json({error:"تحقق من الاسم الثلاثي وبيانات الدخول وكلمة المرور"},{status:400});
- const external=await createExternalUser(email,password,{full_name:fullName,role,username:role!=="PARENT"?username:null,must_change_password:true}),result=await auth.db.prepare("INSERT INTO users(external_user_id,email,full_name,role,status,username,phone,must_change_password) VALUES(?,?,?,?,?,?,?,1)").bind(external.id,email,fullName,role,"ACTIVE",role!=="PARENT"?username:null,phone).run();
+ const staff=["TEACHER","ADMIN"].includes(role),requestedEmail=String(p.email||"").trim().toLowerCase(),email=role==="STUDENT"?studentEmail(username):staff?staffEmail(username):requestedEmail||parentEmail(username);
+ if(!["STUDENT","PARENT","TEACHER","ADMIN"].includes(role)||fullName.split(/\s+/).length<3||!validPassword(password)||(!entityId&&role!=="ADMIN")||!/^[A-Za-z0-9._-]{3,30}$/.test(username))return Response.json({error:"تحقق من الاسم الثلاثي وبيانات الدخول وكلمة المرور"},{status:400});
+ const external=await createExternalUser(email,password,{full_name:fullName,role,username,must_change_password:true}),result=await auth.db.prepare("INSERT INTO users(external_user_id,email,full_name,role,status,username,phone,must_change_password) VALUES(?,?,?,?,?,?,?,1)").bind(external.id,email,fullName,role,"ACTIVE",username,phone).run();
  if(entityId)await auth.db.prepare("INSERT INTO account_links(user_id,entity_type,entity_id) VALUES(?,?,?)").bind(result.meta.last_row_id,role==="STUDENT"?"student":role==="PARENT"?"parent":"teacher",entityId).run();
- return Response.json({message:role==="ADMIN"?"تم إنشاء حساب نائب المدير":"تم إنشاء الحساب الخارجي وربطه بالملف"},{status:201});
+ return Response.json({message:role==="PARENT"?`تم إنشاء الحساب. اسم دخول ولي الأمر: ${username}`:role==="ADMIN"?"تم إنشاء حساب مدير الفترة":"تم إنشاء الحساب الخارجي وربطه بالملف",id:result.meta.last_row_id,username:role==="PARENT"?username:undefined},{status:201});
  }catch(e){return Response.json({error:e instanceof Error?e.message:"تعذر إنشاء الحساب"},{status:400});}}
 export async function PUT(request:Request){try{
  const auth=await requireSchoolAdmin();if(auth.error)return auth.error;

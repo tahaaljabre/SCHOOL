@@ -23,3 +23,9 @@ export async function PUT(request:Request){try{const auth=await requireSchoolAdm
  else if(action==="link_account"){const userId=Number(p.userId),entityId=Number(p.entityId),entityType=String(p.entityType||"");const user=await auth.db.prepare("SELECT role FROM users WHERE id=? AND status='ACTIVE'").bind(userId).first<{role:string}>(),expected:Record<string,string>={TEACHER:"teacher",STUDENT:"student",PARENT:"parent"};if(!user||expected[user.role]!==entityType||!entityId)return Response.json({error:"الحساب والسجل غير متوافقين"},{status:400});await auth.db.prepare("INSERT INTO account_links(user_id,entity_type,entity_id) VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET entity_type=excluded.entity_type,entity_id=excluded.entity_id").bind(userId,entityType,entityId).run();}
  else if(action==="unlink_account"){await auth.db.prepare("DELETE FROM account_links WHERE user_id=?").bind(Number(p.userId)).run();}
  else return Response.json({error:"العملية غير معروفة"},{status:400});await auth.db.prepare("INSERT INTO audit_logs(actor_user_id,action,entity_type,entity_id,after_data) VALUES(?,?,?,?,?)").bind(auth.record.id,"RELATION_UPDATE","school_relations",action,JSON.stringify(p)).run();return Response.json({message:"تم حفظ الربط بنجاح"});}catch{return Response.json({error:"تعذر حفظ الربط"},{status:400});}}
+
+// شاشة «ربط الحسابات بالسجلات» ترسل بيانات الحساب والسجل مباشرة.
+export async function POST(request:Request){
+ const p=await request.json() as Record<string,unknown>;
+ return PUT(new Request(request.url,{method:"PUT",headers:{"content-type":"application/json",cookie:request.headers.get("cookie")||""},body:JSON.stringify({...p,action:"link_account"})}));
+}

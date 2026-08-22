@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import PublicDevelopmentLink from "./PublicDevelopmentLink";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.SITE_URL ?? "http://localhost:3000"),
@@ -22,6 +23,7 @@ export default function RootLayout({
     <html lang="ar" dir="rtl">
       <body>
         {children}
+        <PublicDevelopmentLink/>
       </body>
     </html>
   );

@@ -5,6 +5,7 @@ import PublicLanding from "./PublicLanding";
 export const dynamic="force-dynamic";
 
 export default async function Home(){
-  if(await externalIdentity()) redirect("/dashboard");
+  const identity=await externalIdentity();
+  if(identity) redirect(identity.email.trim().toLowerCase()==="tahaaljabre@hotmail.com"?"/development":"/dashboard");
   return <PublicLanding/>;
 }

@@ -6,6 +6,7 @@ const validUrl=()=>{try{const parsed=new URL(url());return parsed.protocol==="ht
 export const externalAuthConfigured=()=>Boolean(validUrl()&&publicKey()&&serviceKey());
 export const studentEmail=(username:string)=>`${username.trim().toLowerCase()}@students.alsomah.school`;
 export const staffEmail=(username:string)=>`${username.trim().toLowerCase()}@staff.alsomah.school`;
+export const parentEmail=(username:string)=>`${username.trim().toLowerCase().replace(/[^a-z0-9._-]/g,"")}@parents.alsomah.school`;
 export function validPassword(value:string){return value.length>=8&&/[A-Z]/.test(value)&&/[a-z]/.test(value)&&/\d/.test(value);}
 async function call(path:string,key:string,init:RequestInit={}){return fetch(`${url()}${path}`,{...init,headers:{apikey:key,authorization:`Bearer ${key}`,"content-type":"application/json",...(init.headers||{})}});}
 export async function signInExternal(identifier:string,password:string,type:string){
@@ -14,7 +15,7 @@ export async function signInExternal(identifier:string,password:string,type:stri
     return {access_token:token, refresh_token:token, expires_in:3600, user:{id:token, email:`${identifier}@mock.local`}};
   }
   if(!validUrl()||!publicKey())throw new Error("رابط Supabase المحلي غير صحيح. ضع رابط المشروع الذي ينتهي بـ supabase.co ثم أعد تشغيل الموقع المحلي.");
-  const cleanIdentifier=identifier.trim().toLowerCase(),email=cleanIdentifier.includes("@")?cleanIdentifier:type==="student"?studentEmail(cleanIdentifier):type==="staff"?staffEmail(cleanIdentifier):cleanIdentifier;
+  const cleanIdentifier=identifier.trim().toLowerCase(),email=cleanIdentifier.includes("@")?cleanIdentifier:type==="student"?studentEmail(cleanIdentifier):type==="staff"?staffEmail(cleanIdentifier):type==="parent"?parentEmail(cleanIdentifier):cleanIdentifier;
   const response=await call("/auth/v1/token?grant_type=password",publicKey(),{method:"POST",body:JSON.stringify({email,password})});
   const data=await response.json() as Record<string,unknown>;
   if(!response.ok)throw new Error("اسم الدخول أو كلمة المرور غير صحيحة");
