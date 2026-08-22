@@ -49,7 +49,8 @@ export default function PublicLanding() {
     }),
     [home, setHome] = useState<Home>({}),
     [items, setItems] = useState<Item[]>([]),
-    [ann, setAnn] = useState<Array<{ title: string; body: string }>>([]);
+    [ann, setAnn] = useState<Array<{ title: string; body: string }>>([]),
+    [preview, setPreview] = useState<{ src: string; alt: string } | null>(null);
   useEffect(() => {
     fetch("/api/public")
       .then((r) => r.json())
@@ -114,7 +115,7 @@ export default function PublicLanding() {
         {images.length > 0 && (
           <div className={`card-gallery count-${images.length}`}>
             {images.map((img: string) => (
-              <img key={img} loading="lazy" src={img} alt="" />
+              <img className="zoomable-image" key={img} loading="lazy" src={img} alt={x.title} onClick={() => setPreview({ src: img, alt: x.title })} />
             ))}
           </div>
         )}
@@ -187,10 +188,11 @@ export default function PublicLanding() {
                 key={x.id}
               >
                 {x.image_url && (
-                  <img
+                  <img className="zoomable-image"
                     loading="lazy"
                     src={x.image_url.split("|")[0]}
                     alt={x.title}
+                    onClick={() => setPreview({ src: x.image_url.split("|")[0], alt: x.title })}
                   />
                 )}
                 <div>
@@ -226,10 +228,11 @@ export default function PublicLanding() {
         <section className="public-section manager-section">
           <article className="manager-card">
             {home.manager_image_url ? (
-              <img
+              <img className="zoomable-image"
                 loading="lazy"
                 src={home.manager_image_url}
                 alt={home.manager_name}
+                onClick={() => setPreview({ src: home.manager_image_url || "", alt: home.manager_name || "صورة المدير" })}
               />
             ) : (
               <div className="manager-placeholder">مد</div>
@@ -290,7 +293,7 @@ export default function PublicLanding() {
                   ) : imgs.length ? (
                     <div className={`card-gallery count-${imgs.length}`}>
                       {imgs.map((img) => (
-                        <img key={img} loading="lazy" src={img} alt={x.title} />
+                        <img className="zoomable-image" key={img} loading="lazy" src={img} alt={x.title} onClick={() => setPreview({ src: img, alt: x.title })} />
                       ))}
                     </div>
                   ) : (
@@ -319,6 +322,7 @@ export default function PublicLanding() {
           <a href="/login">دخول النظام ←</a>
         </div>
       </section>
+      {preview && <div className="image-lightbox" role="dialog" aria-modal="true" aria-label={preview.alt} onClick={() => setPreview(null)}><button type="button" aria-label="إغلاق الصورة" onClick={() => setPreview(null)}>×</button><img src={preview.src} alt={preview.alt} onClick={(e) => e.stopPropagation()} /></div>}
       <footer>© 2026 {school.school_name} — جميع الحقوق محفوظة</footer>
     </main>
   );

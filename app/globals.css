@@ -24,6 +24,7 @@
 .news-body{white-space:pre-line}.news-body.collapsed{margin-bottom:.35rem}.read-more{border:1px solid #b9ded8;background:#eff9f7;color:#087b83;font-weight:800;cursor:pointer;padding:.45rem .8rem;margin-top:8px;border-radius:999px;min-height:38px}.read-more:hover{background:#dff3ef}
 .finance-portal{display:none!important}
 .media-grid{align-items:start}.media-grid article{align-self:start;height:auto}.media-grid .read-more{margin:0 1rem 1rem}.media-grid .news-body{margin:.85rem 1rem}
+.zoomable-image{cursor:zoom-in}.image-lightbox{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:24px;background:#001b20e8;backdrop-filter:blur(6px)}.image-lightbox img{display:block;max-width:min(96vw,1400px);max-height:88vh;width:auto;height:auto;object-fit:contain;border-radius:12px;box-shadow:0 24px 80px #0009}.image-lightbox button{position:fixed;top:18px;left:18px;width:48px;height:48px;border:0;border-radius:50%;background:#fff;color:#073e47;font-size:2rem;line-height:1;cursor:pointer;box-shadow:0 8px 24px #0005}
 .school-ticker{isolation:isolate}.school-ticker strong{position:relative;z-index:2;flex:none}.school-ticker span{position:relative;z-index:1;padding-inline:1rem;flex:0 0 max-content;will-change:transform}
 .school-ticker span{animation-duration:35s}
 .development-link{position:fixed;left:14px;bottom:12px;z-index:40;background:#073e47;color:#fff!important;text-decoration:none;padding:8px 12px;border-radius:999px;font-size:.78rem;font-weight:700;box-shadow:0 5px 16px #073e4744;opacity:.78}.development-link:hover{opacity:1}
