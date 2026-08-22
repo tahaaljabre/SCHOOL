@@ -5,11 +5,10 @@ type School={school_name?:string;logo_url?:string;country?:string;governorate?:s
 const embed=(u:string)=>{const m=u.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([\w-]{11})/);return m?`https://www.youtube-nocookie.com/embed/${m[1]}`:""};
 export default function PublicLanding(){const [school,setSchool]=useState<School>({school_name:"مدرسة الصومعه",area:"يافع",district:"المفلحي",country:"اليمن"}),[home,setHome]=useState<Home>({}),[items,setItems]=useState<Item[]>([]),[ann,setAnn]=useState<Array<{title:string;body:string}>>([]);useEffect(()=>{fetch("/api/public").then(r=>r.json()).then(d=>{setSchool(s=>({...s,...d.school}));setHome(d.home||{});setItems(d.items||[]);setAnn(d.announcements||[])})},[]);const location=[school.area,school.district,school.governorate,school.country].filter(Boolean).join(" — "),achievers=items.filter(x=>x.item_type==="ACHIEVER"),news=[...items.filter(x=>["NEWS","REPORT"].includes(x.item_type)),...ann.map((x,i)=>({id:-i-1,item_type:"NEWS",title:x.title,body:x.body,image_url:"",media_url:""}))],media=items.filter(x=>x.item_type==="MEDIA");
 
+const ExpandableText=({text}:{text:string})=>{const [expanded,setExpanded]=useState(false),isLong=text.trim().length>90;return <>{text&&<p className={`news-body ${expanded?"expanded":"collapsed"}`}>{expanded?text:`${text.slice(0,90)}${isLong?"…":""}`}</p>}{isLong&&<button type="button" className="read-more" aria-expanded={expanded} onClick={()=>setExpanded(!expanded)}>{expanded?"عرض أقل ↑":"المزيد ↓"}</button>}</>};
 const NewsCard = ({ x }: { x: any }) => {
-  const [expanded, setExpanded] = useState(false);
   const images = x.image_url ? x.image_url.split("|") : [];
   const text = x.body || "";
-  const isLong = text.length > 120;
   return (
     <article key={x.id}>
       <span>{x.item_type==="REPORT"?"تقرير":"إعلان مدرسي"}</span>
@@ -19,8 +18,7 @@ const NewsCard = ({ x }: { x: any }) => {
         </div>
       )}
       <h3>{x.title}</h3>
-      <p className="news-body">{expanded ? text : text.slice(0, 120) + (isLong ? "..." : "")}</p>
-      {isLong && <button className="read-more" onClick={() => setExpanded(!expanded)}>{expanded ? "عرض أقل ↑" : "المزيد ↓"}</button>}
+      <ExpandableText text={text}/>
     </article>
   );
 };
