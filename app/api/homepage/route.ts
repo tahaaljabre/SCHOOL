@@ -10,7 +10,7 @@ export async function GET(){
    auth.db.prepare("SELECT * FROM public_home_settings WHERE id=1").first<Record<string,unknown>>(),
    auth.db.prepare("SELECT * FROM public_home_items ORDER BY sort_order,id DESC").all()
   ]);
-  return Response.json({settings:settings??{},items:items.results});
+  return Response.json({settings:settings??{},items:items.results},{headers:{"cache-control":"no-store, max-age=0"}});
  }catch{return Response.json({error:"تعذر تحميل إعدادات الشاشة الرئيسية"},{status:500});}
 }
 

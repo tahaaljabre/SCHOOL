@@ -42,6 +42,15 @@ export async function createExternalUser(email:string,password:string,metadata:R
   if(!response.ok)throw new Error(String(data.msg||data.message||"تعذر إنشاء الحساب الخارجي"));
   return data as {id:string;email:string};
 }
+export async function restoreExternalUser(email:string,password:string,metadata:Record<string,unknown>){
+ if(!externalAuthConfigured())throw new Error("أضف إعدادات خدمة الدخول أولًا");
+ const response=await call("/auth/v1/admin/users?page=1&per_page=1000",serviceKey()),data=await response.json() as {users?:Array<{id:string;email:string}>};
+ if(!response.ok)throw new Error("تعذر العثور على الحساب القديم");
+ const user=(data.users||[]).find(item=>item.email.toLowerCase()===email.toLowerCase());
+ if(!user)throw new Error("الحساب موجود في خدمة الدخول لكن تعذر تحديده");
+ await updateExternalUser(user.id,{password,user_metadata:metadata,must_change_password:true});
+ return user;
+}
 export async function updateExternalUser(id:string,changes:Record<string,unknown>){
   if(process.env.MOCK_AUTH==="true")return {};
   if(!externalAuthConfigured())throw new Error("أضف إعدادات خدمة الدخول أولًا");

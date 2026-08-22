@@ -41,6 +41,7 @@ export default function DevelopmentHub() {
     setMessage(link.ok ? "تم إنشاء مدير الفترة وربطه بنجاح" : linkData.error);
     if (link.ok) { setNewManager({ shiftId: "", fullName: "", username: "", phone: "", password: "" }); load(); }
   };
+  const enterShift = async (shiftId:number) => {const response=await fetch("/api/session/shifts",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({shiftId})});if(response.ok)location.href="/dashboard";else setMessage("تعذر فتح الفترة")};
   const disableManager = async (user: ExistingUser) => {
     if (!confirm(`إلغاء حساب المدير ${user.name}؟ لن يستطيع الدخول بعد ذلك.`)) return;
     setMessage("");
@@ -53,7 +54,7 @@ export default function DevelopmentHub() {
 
   return <main className="development-hub" dir="rtl">
     <header><span>دائرة التطوير</span><h1>إدارة الفترات ومديري المدارس</h1><p>هذه اللوحة خاصة بمشرف النظام الكامل فقط.</p></header>
-    <section className="development-shifts">{shifts.map(shift => <article key={shift.id} className={shift.gender_scope === "FEMALE" ? "evening" : "morning"}><h2>{shift.name}</h2><p>{shift.gender_scope === "FEMALE" ? "مدرسة البنات — الفترة المسائية" : "مدرسة البنين — الفترة الصباحية"}</p></article>)}</section>
+    <section className="development-shifts">{shifts.map(shift => <article key={shift.id} className={shift.gender_scope === "FEMALE" ? "evening" : "morning"}><h2>{shift.name}</h2><p>{shift.gender_scope === "FEMALE" ? "مدرسة البنات — الفترة المسائية" : "مدرسة البنين — الفترة الصباحية"}</p><button className="primary" onClick={()=>enterShift(shift.id)}>دخول لوحة هذه الفترة</button></article>)}</section>
     {message && <p className="form-error">{message}</p>}
     <section className="development-forms">
       <form onSubmit={assignExisting} className="development-form"><h2>تعيين حساب موجود مديرًا</h2><p>استخدمه للحسابات الموجودة مثل صالح ثابت صالح، ولا تنشئ حسابًا مكررًا.</p><select required value={existing.userId} onChange={e => setExisting({ ...existing, userId: e.target.value })}><option value="">اختر الحساب</option>{users.map(user => <option key={user.id} value={user.id}>{user.name}{user.username ? ` — ${user.username}` : ""}</option>)}</select><select required value={existing.shiftId} onChange={e => setExisting({ ...existing, shiftId: e.target.value })}><option value="">اختر الفترة</option>{shifts.map(shift => <option key={shift.id} value={shift.id}>{shift.name}</option>)}</select><button className="primary">تحويله إلى مدير وربطه</button></form>
