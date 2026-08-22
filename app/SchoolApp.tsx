@@ -9,7 +9,7 @@ const sections=[
 ];
 const sectionsByRole: Record<string, string[]> = {
   SUPER_ADMIN: ["dashboard","homepage","my-account","students","parents","teachers","employees","classes","subjects","shifts","relations","accounts","credentials","staff-access","content","attendance","schedule","grades","fees","reports","users","settings"],
-  ADMIN: ["dashboard","my-account","students","parents","teachers","employees","classes","subjects","relations","accounts","credentials","staff-access","content","attendance","schedule","grades","fees","reports"],
+  ADMIN: ["dashboard","homepage","my-account","students","parents","teachers","employees","classes","subjects","relations","accounts","credentials","staff-access","content","attendance","schedule","grades","fees","reports","settings"],
   TEACHER: ["dashboard","my-account","classes","content","attendance","schedule","grades"],
   STUDENT: ["dashboard","my-account","content","schedule","grades","fees"],
   PARENT: ["dashboard","my-account","content","schedule","grades","fees"],

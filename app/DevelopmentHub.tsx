@@ -41,6 +41,15 @@ export default function DevelopmentHub() {
     setMessage(link.ok ? "تم إنشاء مدير الفترة وربطه بنجاح" : linkData.error);
     if (link.ok) { setNewManager({ shiftId: "", fullName: "", username: "", phone: "", password: "" }); load(); }
   };
+  const disableManager = async (user: ExistingUser) => {
+    if (!confirm(`إلغاء حساب المدير ${user.name}؟ لن يستطيع الدخول بعد ذلك.`)) return;
+    setMessage("");
+    const response = await fetch("/api/auth/admin", { method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: user.id }) });
+    const data = await response.json();
+    setMessage(response.ok ? data.message : data.error);
+    if (response.ok) load();
+  };
+  const managers = users.filter(user => user.role === "ADMIN" || user.role === "SUPER_ADMIN");
 
   return <main className="development-hub" dir="rtl">
     <header><span>دائرة التطوير</span><h1>إدارة الفترات ومديري المدارس</h1><p>هذه اللوحة خاصة بمشرف النظام الكامل فقط.</p></header>
@@ -50,5 +59,6 @@ export default function DevelopmentHub() {
       <form onSubmit={assignExisting} className="development-form"><h2>تعيين حساب موجود مديرًا</h2><p>استخدمه للحسابات الموجودة مثل صالح ثابت صالح، ولا تنشئ حسابًا مكررًا.</p><select required value={existing.userId} onChange={e => setExisting({ ...existing, userId: e.target.value })}><option value="">اختر الحساب</option>{users.map(user => <option key={user.id} value={user.id}>{user.name}{user.username ? ` — ${user.username}` : ""}</option>)}</select><select required value={existing.shiftId} onChange={e => setExisting({ ...existing, shiftId: e.target.value })}><option value="">اختر الفترة</option>{shifts.map(shift => <option key={shift.id} value={shift.id}>{shift.name}</option>)}</select><button className="primary">تحويله إلى مدير وربطه</button></form>
       <form onSubmit={create} className="development-form"><h2>إنشاء مدير فترة جديد</h2><select required value={newManager.shiftId} onChange={e => setNewManager({ ...newManager, shiftId: e.target.value })}><option value="">اختر الفترة</option>{shifts.map(shift => <option key={shift.id} value={shift.id}>{shift.name}</option>)}</select><input required placeholder="الاسم الثلاثي" value={newManager.fullName} onChange={e => setNewManager({ ...newManager, fullName: e.target.value })}/><input required placeholder="اسم المستخدم" value={newManager.username} onChange={e => setNewManager({ ...newManager, username: e.target.value })}/><input placeholder="رقم الجوال" value={newManager.phone} onChange={e => setNewManager({ ...newManager, phone: e.target.value })}/><input required type="password" minLength={8} placeholder="كلمة المرور المؤقتة" value={newManager.password} onChange={e => setNewManager({ ...newManager, password: e.target.value })}/><button className="primary">إنشاء مدير وربطه بالفترة</button></form>
     </section>
+    <section className="development-form"><h2>الحسابات الإدارية الحالية</h2><p>هذه قائمة الحسابات التي تظهر في دائرة التطوير. يمكنك إلغاء المدير المكرر أو غير المطلوب؛ أما مشرف النظام فهو محمي.</p>{managers.map(user => <div key={user.id} className="settings-actions"><span>{user.name}{user.username ? ` — ${user.username}` : ""} ({user.role === "SUPER_ADMIN" ? "مشرف النظام" : "مدير فترة"})</span>{user.role === "ADMIN" ? <button type="button" className="danger" onClick={() => disableManager(user)}>إلغاء الحساب</button> : <span className="permission-chip">حساب محمي</span>}</div>)}</section>
   </main>;
 }

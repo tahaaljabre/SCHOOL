@@ -20,3 +20,16 @@ export async function PUT(request:Request){try{
  if(Object.keys(changes).length)await updateExternalUser(user.external_user_id,changes);if(email&&user.role==="PARENT")await auth.db.prepare("UPDATE users SET email=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(email,id).run();if(password)await auth.db.prepare("UPDATE users SET must_change_password=1,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(id).run();if(role&&["TEACHER","ADMIN"].includes(role))await auth.db.prepare("UPDATE users SET role=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(role,id).run();
  await auth.db.prepare("INSERT INTO audit_logs(actor_user_id,action,entity_type,entity_id,after_data) VALUES(?,?,?,?,?)").bind(auth.record.id,role?"DELEGATE_ADMIN":"RESET_CREDENTIALS","users",String(id),JSON.stringify({emailChanged:Boolean(email),passwordReset:Boolean(password),role:role||undefined})).run();return Response.json({message:role==="ADMIN"?"تم منح صلاحية نائب المدير":"تم تحديث بيانات الدخول"});
  }catch(e){return Response.json({error:e instanceof Error?e.message:"تعذر تحديث بيانات الدخول"},{status:400});}}
+export async function DELETE(request:Request){try{
+ const auth=await requireSchoolAdmin();if(auth.error)return auth.error;
+ if(auth.record.role!=="SUPER_ADMIN")return Response.json({error:"هذه العملية خاصة بدائرة التطوير"},{status:403});
+ const p=await request.json() as Record<string,unknown>,id=Number(p.id);
+ if(!id||id===auth.record.id)return Response.json({error:"لا يمكن إلغاء حساب مشرف النظام الحالي"},{status:400});
+ const user=await auth.db.prepare("SELECT id,full_name,role FROM users WHERE id=? AND status='ACTIVE'").bind(id).first<{id:number;full_name:string;role:string}>();
+ if(!user)return Response.json({error:"الحساب غير موجود أو موقوف"},{status:404});
+ if(user.role!=="ADMIN")return Response.json({error:"يمكن إلغاء حسابات مديري الفترات فقط من هنا"},{status:400});
+ await auth.db.prepare("DELETE FROM shift_admins WHERE user_id=?").bind(id).run();
+ await auth.db.prepare("UPDATE users SET status='SUSPENDED',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(id).run();
+ await auth.db.prepare("INSERT INTO audit_logs(actor_user_id,action,entity_type,entity_id,after_data) VALUES(?,?,?,?,?)").bind(auth.record.id,"SUSPEND_MANAGER","users",String(id),JSON.stringify({fullName:user.full_name})).run();
+ return Response.json({message:"تم إلغاء حساب المدير وإزالته من الفترات. يمكن استعادته لاحقًا من قاعدة البيانات عند الحاجة."});
+ }catch{return Response.json({error:"تعذر إلغاء حساب المدير"},{status:400});}}
