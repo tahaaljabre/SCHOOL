@@ -8,7 +8,7 @@ export const studentEmail=(username:string)=>`${username.trim().toLowerCase()}@s
 export const staffEmail=(username:string)=>`${username.trim().toLowerCase()}@staff.alsomah.school`;
 export const parentEmail=(username:string)=>`${username.trim().toLowerCase().replace(/[^a-z0-9._-]/g,"")}@parents.alsomah.school`;
 export function validPassword(value:string){return value.length>=8&&/[A-Z]/.test(value)&&/[a-z]/.test(value)&&/\d/.test(value);}
-async function call(path:string,key:string,init:RequestInit={}){return fetch(`${url()}${path}`,{...init,headers:{apikey:key,authorization:`Bearer ${key}`,"content-type":"application/json",...(init.headers||{})}});}
+async function call(path:string,key:string,init:RequestInit={}){const legacyJwt=key.startsWith("eyJ");return fetch(`${url()}${path}`,{...init,headers:{apikey:key,...(legacyJwt?{authorization:`Bearer ${key}`}:{}),"content-type":"application/json",...(init.headers||{})}});}
 export async function signInExternal(identifier:string,password:string,type:string){
   if(process.env.MOCK_AUTH==="true"){
     const token = `mock_${identifier}`;
@@ -57,6 +57,12 @@ export async function updateExternalUser(id:string,changes:Record<string,unknown
   const response=await call(`/auth/v1/admin/users/${id}`,serviceKey(),{method:"PUT",body:JSON.stringify(changes)}),data=await response.json() as Record<string,unknown>;
   if(!response.ok)throw new Error(String(data.msg||data.message||"تعذر تحديث الحساب الخارجي"));
   return data;
+}
+export async function deleteExternalUser(id:string){
+ if(id.startsWith("pending:")||process.env.MOCK_AUTH==="true")return;
+ if(!externalAuthConfigured())return;
+ const response=await call(`/auth/v1/admin/users/${id}`,serviceKey(),{method:"DELETE"});
+ if(!response.ok)throw new Error("تعذر حذف حساب الدخول الخارجي");
 }
 
 export async function uploadPublicSchoolFile(file:File){

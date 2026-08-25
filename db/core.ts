@@ -10,6 +10,7 @@ export async function ensureCoreSchema(){
   db.prepare(`CREATE TABLE IF NOT EXISTS role_permissions (role_id INTEGER NOT NULL,permission_id INTEGER NOT NULL,PRIMARY KEY(role_id,permission_id),FOREIGN KEY(role_id) REFERENCES roles(id),FOREIGN KEY(permission_id) REFERENCES permissions(id))`),
   db.prepare(`CREATE TABLE IF NOT EXISTS user_roles (user_id INTEGER NOT NULL,role_id INTEGER NOT NULL,PRIMARY KEY(user_id,role_id),FOREIGN KEY(user_id) REFERENCES users(id),FOREIGN KEY(role_id) REFERENCES roles(id))`),
   db.prepare(`CREATE TABLE IF NOT EXISTS students (id INTEGER PRIMARY KEY AUTOINCREMENT,student_number TEXT NOT NULL UNIQUE,full_name TEXT NOT NULL,classroom_name TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'ACTIVE',archived_at TEXT,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)`),
+  db.prepare(`CREATE TABLE IF NOT EXISTS student_promotions (id INTEGER PRIMARY KEY AUTOINCREMENT,student_id INTEGER NOT NULL,academic_year TEXT NOT NULL,action TEXT NOT NULL,from_classroom_id INTEGER NOT NULL,to_classroom_id INTEGER,to_classroom_name TEXT NOT NULL DEFAULT '',recorded_by INTEGER NOT NULL,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,UNIQUE(student_id,academic_year),FOREIGN KEY(student_id) REFERENCES students(id),FOREIGN KEY(recorded_by) REFERENCES users(id))`),
   db.prepare(`CREATE TABLE IF NOT EXISTS teachers (id INTEGER PRIMARY KEY AUTOINCREMENT,employee_number TEXT NOT NULL UNIQUE,full_name TEXT NOT NULL,specialization TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'ACTIVE',archived_at TEXT,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)`),
   db.prepare(`CREATE TABLE IF NOT EXISTS classrooms (id INTEGER PRIMARY KEY AUTOINCREMENT,code TEXT NOT NULL UNIQUE,name TEXT NOT NULL,grade_level TEXT NOT NULL,capacity INTEGER NOT NULL DEFAULT 30,status TEXT NOT NULL DEFAULT 'ACTIVE',archived_at TEXT,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)`),
   db.prepare(`CREATE TABLE IF NOT EXISTS parents (id INTEGER PRIMARY KEY AUTOINCREMENT,parent_number TEXT NOT NULL UNIQUE,full_name TEXT NOT NULL,phone TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'ACTIVE',archived_at TEXT,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)`),
@@ -39,6 +40,8 @@ export async function ensureCoreSchema(){
   db.prepare("CREATE INDEX IF NOT EXISTS idx_academic_content_classroom ON academic_content(classroom_id,content_type,archived_at)"),
   db.prepare(`CREATE TABLE IF NOT EXISTS schedule_entries (id INTEGER PRIMARY KEY AUTOINCREMENT,classroom_id INTEGER NOT NULL,teacher_id INTEGER NOT NULL,subject_id INTEGER NOT NULL,day_of_week INTEGER NOT NULL,period_number INTEGER NOT NULL,starts_at TEXT NOT NULL,ends_at TEXT NOT NULL,FOREIGN KEY(classroom_id) REFERENCES classrooms(id),FOREIGN KEY(teacher_id) REFERENCES teachers(id),FOREIGN KEY(subject_id) REFERENCES subjects(id),UNIQUE(classroom_id,day_of_week,period_number),UNIQUE(teacher_id,day_of_week,period_number))`),
   db.prepare(`CREATE TABLE IF NOT EXISTS attendance_records (id INTEGER PRIMARY KEY AUTOINCREMENT,student_id INTEGER NOT NULL,attendance_date TEXT NOT NULL,status TEXT NOT NULL,notes TEXT NOT NULL DEFAULT '',recorded_by INTEGER,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,FOREIGN KEY(student_id) REFERENCES students(id),FOREIGN KEY(recorded_by) REFERENCES users(id),UNIQUE(student_id,attendance_date))`),
+  db.prepare(`CREATE TABLE IF NOT EXISTS attendance_alerts (id INTEGER PRIMARY KEY AUTOINCREMENT,parent_id INTEGER NOT NULL,student_id INTEGER NOT NULL,attendance_date TEXT NOT NULL,status TEXT NOT NULL,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,read_at TEXT,UNIQUE(parent_id,student_id,attendance_date),FOREIGN KEY(parent_id) REFERENCES parents(id),FOREIGN KEY(student_id) REFERENCES students(id))`),
+  db.prepare(`CREATE TABLE IF NOT EXISTS system_cleanups (code TEXT PRIMARY KEY,applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)`),
   db.prepare("CREATE INDEX IF NOT EXISTS idx_audit_logs_entity ON audit_logs(entity_type,entity_id)"),
   db.prepare("CREATE INDEX IF NOT EXISTS idx_students_name ON students(full_name)"),
   db.prepare("CREATE INDEX IF NOT EXISTS idx_teachers_name ON teachers(full_name)"),
@@ -51,10 +54,7 @@ export async function ensureCoreSchema(){
  await db.batch([
   db.prepare("INSERT OR IGNORE INTO roles(code,name,is_system) VALUES('SUPER_ADMIN','مدير النظام',1)"),db.prepare("INSERT OR IGNORE INTO roles(code,name,is_system) VALUES('ADMIN','مدير المدرسة',1)"),db.prepare("INSERT OR IGNORE INTO roles(code,name,is_system) VALUES('TEACHER','معلم',1)"),db.prepare("INSERT OR IGNORE INTO roles(code,name,is_system) VALUES('STUDENT','طالب',1)"),db.prepare("INSERT OR IGNORE INTO roles(code,name,is_system) VALUES('PARENT','ولي أمر',1)"),db.prepare("INSERT OR IGNORE INTO roles(code,name,is_system) VALUES('EMPLOYEE','موظف',1)"),
   db.prepare("INSERT OR IGNORE INTO permissions(code,name,module) VALUES('school.settings.manage','إدارة إعدادات المدرسة','settings')"),db.prepare("INSERT OR IGNORE INTO permissions(code,name,module) VALUES('users.manage','إدارة المستخدمين','users')"),db.prepare("INSERT OR IGNORE INTO permissions(code,name,module) VALUES('students.manage','إدارة الطلاب','students')"),db.prepare("INSERT OR IGNORE INTO permissions(code,name,module) VALUES('teachers.manage','إدارة المعلمين','teachers')"),db.prepare("INSERT OR IGNORE INTO permissions(code,name,module) VALUES('classes.manage','إدارة الفصول','classes')"),
-  db.prepare("INSERT OR IGNORE INTO students(student_number,full_name,classroom_name) VALUES('ST-1024','سارة محمد العتيبي','الصف السادس (أ)')"),db.prepare("INSERT OR IGNORE INTO students(student_number,full_name,classroom_name) VALUES('ST-1025','يوسف أحمد القحطاني','الصف الخامس (ب)')"),
-  db.prepare("INSERT OR IGNORE INTO teachers(employee_number,full_name,specialization) VALUES('T-101','محمد علي','رياضيات')"),db.prepare("INSERT OR IGNORE INTO teachers(employee_number,full_name,specialization) VALUES('T-102','نورة سعد','لغة عربية')"),
   db.prepare("INSERT OR IGNORE INTO classrooms(code,name,grade_level,capacity) VALUES('C-6A','السادس (أ)','الصف السادس',30)"),db.prepare("INSERT OR IGNORE INTO classrooms(code,name,grade_level,capacity) VALUES('C-5B','الخامس (ب)','الصف الخامس',30)"),
-  db.prepare("INSERT OR IGNORE INTO parents(parent_number,full_name,phone) VALUES('P-1001','أحمد محمد الصومعي','777000001')"),db.prepare("INSERT OR IGNORE INTO employees(employee_number,full_name,job_title) VALUES('E-101','صالح عبدالله','سكرتير المدرسة')"),
   db.prepare("INSERT OR IGNORE INTO subjects(code,name) VALUES('MATH','الرياضيات')"),db.prepare("INSERT OR IGNORE INTO subjects(code,name) VALUES('AR','اللغة العربية')"),db.prepare("INSERT OR IGNORE INTO subjects(code,name) VALUES('SCI','العلوم')"),
  ]);
  const studentColumns=await db.prepare("PRAGMA table_info(students)").all<{name:string}>();
@@ -70,6 +70,28 @@ export async function ensureCoreSchema(){
  for(const column of ["achiever_percentage TEXT NOT NULL DEFAULT ''","achiever_average TEXT NOT NULL DEFAULT ''","achiever_rank TEXT NOT NULL DEFAULT ''","achiever_group TEXT NOT NULL DEFAULT 'MORNING'","honor_featured INTEGER NOT NULL DEFAULT 0"]){const name=column.split(" ")[0];if(!homeItemColumns.results.some(item=>item.name===name))await db.prepare(`ALTER TABLE public_home_items ADD COLUMN ${column}`).run();}
  const homeSettingColumns=await db.prepare("PRAGMA table_info(public_home_settings)").all<{name:string}>();
  for(const column of ["ticker_speed_seconds INTEGER NOT NULL DEFAULT 23","ticker_gap_seconds INTEGER NOT NULL DEFAULT 2"]){const name=column.split(" ")[0];if(!homeSettingColumns.results.some(item=>item.name===name))await db.prepare(`ALTER TABLE public_home_settings ADD COLUMN ${column}`).run();}
+ const demoCleanup=await db.prepare("SELECT code FROM system_cleanups WHERE code='remove-demo-records-2026-08-25'").first();
+ if(!demoCleanup){await db.batch([
+  db.prepare("DELETE FROM attendance_alerts WHERE student_id IN (SELECT id FROM students WHERE student_number IN ('ST-1024','ST-1025')) OR parent_id IN (SELECT id FROM parents WHERE parent_number='P-1001')"),
+  db.prepare("DELETE FROM attendance_records WHERE student_id IN (SELECT id FROM students WHERE student_number IN ('ST-1024','ST-1025'))"),
+  db.prepare("DELETE FROM student_promotions WHERE student_id IN (SELECT id FROM students WHERE student_number IN ('ST-1024','ST-1025'))"),
+  db.prepare("DELETE FROM student_grades WHERE student_id IN (SELECT id FROM students WHERE student_number IN ('ST-1024','ST-1025'))"),
+  db.prepare("DELETE FROM payments WHERE invoice_id IN (SELECT id FROM invoices WHERE student_id IN (SELECT id FROM students WHERE student_number IN ('ST-1024','ST-1025')))"),
+  db.prepare("DELETE FROM invoices WHERE student_id IN (SELECT id FROM students WHERE student_number IN ('ST-1024','ST-1025'))"),
+  db.prepare("DELETE FROM parent_students WHERE student_id IN (SELECT id FROM students WHERE student_number IN ('ST-1024','ST-1025')) OR parent_id IN (SELECT id FROM parents WHERE parent_number='P-1001')"),
+  db.prepare("DELETE FROM teacher_subjects WHERE teacher_id IN (SELECT id FROM teachers WHERE employee_number IN ('T-101','T-102'))"),
+  db.prepare("DELETE FROM teacher_classrooms WHERE teacher_id IN (SELECT id FROM teachers WHERE employee_number IN ('T-101','T-102'))"),
+  db.prepare("DELETE FROM teacher_shifts WHERE teacher_id IN (SELECT id FROM teachers WHERE employee_number IN ('T-101','T-102'))"),
+  db.prepare("DELETE FROM schedule_entries WHERE teacher_id IN (SELECT id FROM teachers WHERE employee_number IN ('T-101','T-102'))"),
+  db.prepare("DELETE FROM audit_logs WHERE actor_user_id IN (SELECT id FROM users WHERE lower(username) IN ('t101','t102'))"),
+  db.prepare("DELETE FROM account_links WHERE (entity_type='student' AND entity_id IN (SELECT id FROM students WHERE student_number IN ('ST-1024','ST-1025'))) OR (entity_type='teacher' AND entity_id IN (SELECT id FROM teachers WHERE employee_number IN ('T-101','T-102'))) OR (entity_type='parent' AND entity_id IN (SELECT id FROM parents WHERE parent_number='P-1001')) OR (entity_type='employee' AND entity_id IN (SELECT id FROM employees WHERE employee_number='E-101'))"),
+  db.prepare("DELETE FROM students WHERE student_number IN ('ST-1024','ST-1025')"),
+  db.prepare("DELETE FROM teachers WHERE employee_number IN ('T-101','T-102')"),
+  db.prepare("DELETE FROM parents WHERE parent_number='P-1001'"),
+  db.prepare("DELETE FROM employees WHERE employee_number='E-101'"),
+  db.prepare("DELETE FROM users WHERE lower(username) IN ('t101','t102')"),
+  db.prepare("INSERT INTO system_cleanups(code) VALUES('remove-demo-records-2026-08-25')")
+ ]);}
  await db.prepare("INSERT OR IGNORE INTO subject_shifts(subject_id,shift_id) SELECT DISTINCT e.subject_id,c.shift_id FROM schedule_entries e JOIN classrooms c ON c.id=e.classroom_id WHERE c.shift_id IS NOT NULL").run();
  await db.prepare("INSERT OR IGNORE INTO subject_shifts(subject_id,shift_id) SELECT s.id,(SELECT id FROM shifts WHERE code='MORNING' LIMIT 1) FROM subjects s WHERE NOT EXISTS(SELECT 1 FROM subject_shifts ss WHERE ss.subject_id=s.id)").run();
  return db;

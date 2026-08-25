@@ -1,5 +1,6 @@
 "use client";
 import {useEffect,useState} from "react";
+import {compressImage} from "./compress-image";
 type Settings={hero_title?:string;hero_text?:string;manager_name?:string;manager_role?:string;manager_phone?:string;manager_image_url?:string;ticker_text?:string};
 type Item={id:number;item_type:string;title:string;body:string;image_url:string;media_url:string;sort_order:number;published:number};
 const blank={itemType:"ACHIEVER",title:"",body:"",imageUrl:"",mediaUrl:"",sortOrder:"0",published:true};

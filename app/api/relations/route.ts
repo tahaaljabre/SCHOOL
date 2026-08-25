@@ -1,7 +1,7 @@
 import { requireSchoolAdmin } from "../../../db/authorization";
 
 export async function GET(){try{const auth=await requireSchoolAdmin();if(auth.error)return auth.error;const [parents,students,classrooms,teachers,subjects,parentLinks,teacherLinks,classroomLinks,users,accountLinks]=await Promise.all([
- auth.db.prepare("SELECT id,full_name name FROM parents WHERE archived_at IS NULL ORDER BY full_name").all(),
+ auth.db.prepare("SELECT id,full_name name,phone FROM parents WHERE archived_at IS NULL ORDER BY full_name").all(),
  auth.db.prepare("SELECT s.id,s.full_name name,s.classroom_id,c.name classroom_name,c.shift_id,sh.name shift_name FROM students s LEFT JOIN classrooms c ON c.id=s.classroom_id LEFT JOIN shifts sh ON sh.id=c.shift_id WHERE s.archived_at IS NULL ORDER BY s.full_name").all(),
  auth.db.prepare("SELECT c.id,c.name,c.shift_id,sh.name shift_name FROM classrooms c LEFT JOIN shifts sh ON sh.id=c.shift_id WHERE c.archived_at IS NULL ORDER BY c.name").all(),
  auth.db.prepare("SELECT id,full_name name FROM teachers WHERE archived_at IS NULL ORDER BY full_name").all(),

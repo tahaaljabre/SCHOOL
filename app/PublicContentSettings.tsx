@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { compressImage } from "./compress-image";
 
 type Settings = {
   hero_title?: string;
@@ -97,10 +98,11 @@ export default function PublicContentSettings({
     const urls: string[] = [];
     try {
       for (let i = 0; i < files.length; i++) {
-        const file = files[i];
+        const original = files[i];
+        const file = target === "video" ? original : await compressImage(original);
         if (target !== "video" && !file.type.startsWith("image/"))
           throw new Error(`${file.name} ليس صورة`);
-        setProgress(`رفع ${i + 1} من ${files.length}: ${file.name}`);
+        setProgress(`ضغط ورفع ${i + 1} من ${files.length}: ${original.name}`);
         const data = new FormData();
         data.append("file", file);
         const r = await fetch("/api/uploads", { method: "POST", body: data }),
