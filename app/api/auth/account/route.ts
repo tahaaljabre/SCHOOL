@@ -10,6 +10,15 @@ export async function GET(){
 export async function PUT(request:Request){try{
   const auth=await requireSchoolUser();if(auth.error)return auth.error;
   const p=await request.json() as Record<string,unknown>,fullName=String(p.fullName||"").trim(),username=String(p.username||"").trim().toLowerCase(),phone=String(p.phone||"").trim(),password=String(p.password||"");
+  const passwordOnly=["STUDENT","PARENT","TEACHER"].includes(auth.record.role);
+  if(passwordOnly){
+    if(!password)return Response.json({error:"يمكنك تغيير كلمة المرور فقط من هذه الصفحة"},{status:400});
+    if(!validPassword(password))return Response.json({error:"كلمة المرور يجب أن تكون 8 خانات وبها حرف كبير وصغير ورقم"},{status:400});
+    if(auth.record.external_user_id?.startsWith("pending:"))return Response.json({error:"هذا الحساب لم يُفعّل بعد لخدمة الدخول"},{status:400});
+    await updateExternalUser(auth.record.external_user_id,{password,user_metadata:{full_name:auth.record.full_name,must_change_password:false,username:auth.record.username}});
+    await auth.db.prepare("UPDATE users SET must_change_password=0,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(auth.record.id).run();
+    return Response.json({message:"تم تغيير كلمة المرور بنجاح"});
+  }
   if(fullName.length<2)return Response.json({error:"الاسم مطلوب"},{status:400});
   if(!/^[a-z0-9._-]{3,30}$/.test(username))return Response.json({error:"اسم المستخدم من 3 إلى 30 حرفًا إنجليزيًا أو رقمًا"},{status:400});
   if(password&&!validPassword(password))return Response.json({error:"كلمة المرور يجب أن تكون 8 خانات وبها حرف كبير وصغير ورقم"},{status:400});

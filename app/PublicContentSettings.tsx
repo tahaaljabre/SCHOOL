@@ -22,6 +22,8 @@ type Item = {
   achiever_percentage?: string;
   achiever_average?: string;
   achiever_rank?: string;
+  achiever_group?: string;
+  honor_featured?: number;
   sort_order: number;
   published: number;
 };
@@ -34,6 +36,8 @@ const blankCard = {
   achieverPercentage: "",
   achieverAverage: "",
   achieverRank: "",
+  achieverGroup: "MORNING",
+  honorFeatured: false,
   sortOrder: "0",
   published: true,
 };
@@ -151,6 +155,8 @@ export default function PublicContentSettings({
       achieverPercentage: x.achiever_percentage || "",
       achieverAverage: x.achiever_average || "",
       achieverRank: x.achiever_rank || "",
+      achieverGroup: x.achiever_group === "EVENING" ? "EVENING" : "MORNING",
+      honorFeatured: !!x.honor_featured,
       sortOrder: String(x.sort_order),
       published: !!x.published,
     };
@@ -341,6 +347,19 @@ export default function PublicContentSettings({
             />
           </label>
           <label>
+            <span>فترة الدراسة</span>
+            <select
+              value={achiever.achieverGroup}
+              onChange={(e) =>
+                setAchiever({ ...achiever, achieverGroup: e.target.value })
+              }
+            >
+              <option value="MORNING">الفترة الصباحية — الأولاد</option>
+              <option value="EVENING">الفترة المسائية — البنات</option>
+            </select>
+            <small>سيظهر الأولاد أعلى الصفحة والبنات أسفلهم.</small>
+          </label>
+          <label>
             <span>النسبة المئوية</span>
             <input
               inputMode="decimal"
@@ -413,6 +432,17 @@ export default function PublicContentSettings({
               }
             />{" "}
             نشر مباشرة
+          </label>
+          <label className="check wide honor-choice">
+            <input
+              type="checkbox"
+              checked={achiever.honorFeatured}
+              onChange={(e) =>
+                setAchiever({ ...achiever, honorFeatured: e.target.checked })
+              }
+            />{" "}
+            اختيار ضمن بطاقة «الأوائل على مستوى المدرسة»
+            <small>اختر حتى ثلاثة من كل فترة لتظهر في البطاقة الاحتفالية.</small>
           </label>
         </div>
         {achiever.imageUrl && (

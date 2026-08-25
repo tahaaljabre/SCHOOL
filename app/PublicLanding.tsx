@@ -35,6 +35,8 @@ type Item = {
   achiever_percentage?: string;
   achiever_average?: string;
   achiever_rank?: string;
+  achiever_group?: string;
+  honor_featured?: number;
 };
 const embed = (u: string) => {
   const m = u.match(
@@ -79,6 +81,10 @@ export default function PublicLanding() {
       .filter(Boolean)
       .join(" — "),
     achievers = items.filter((x) => x.item_type === "ACHIEVER"),
+    morningAchievers = achievers.filter((x) => x.achiever_group !== "EVENING"),
+    eveningAchievers = achievers.filter((x) => x.achiever_group === "EVENING"),
+    morningHonors = morningAchievers.filter((x) => x.honor_featured).slice(0, 3),
+    eveningHonors = eveningAchievers.filter((x) => x.honor_featured).slice(0, 3),
     news = [
       ...items.filter((x) => ["NEWS", "REPORT"].includes(x.item_type)),
       ...ann.map((x, i) => ({
@@ -183,53 +189,23 @@ export default function PublicLanding() {
           <p>تعليم، تميز، ومستقبل مشرق</p>
         </div>
       </section>
+      {(morningHonors.length > 0 || eveningHonors.length > 0) && (
+        <section className="school-honors" aria-label="الأوائل على مستوى المدرسة">
+          <div className="honors-sparkles" aria-hidden="true">✦ ✧ ✦ ✧ ✦</div>
+          <div className="honors-heading">
+            <span>ألف مبروك لنجومنا</span>
+            <h2>الأوائل على مستوى المدرسة</h2>
+            <p>فخر المدرسة وثمار الجد والاجتهاد</p>
+          </div>
+          {morningHonors.length > 0 && <HonorGroup title="أوائل الفترة الصباحية" tone="morning" items={morningHonors} preview={setPreview} />}
+          {eveningHonors.length > 0 && <HonorGroup title="أوائل الفترة المسائية" tone="evening" items={eveningHonors} preview={setPreview} />}
+        </section>
+      )}
       {achievers.length > 0 && (
         <section id="achievers" className="public-section achievers-section">
-          <div className="public-title">
-            <span>نجوم المدرسة</span>
-            <h2>الطلبة المتفوقون</h2>
-            <p>لوحة مستقلة لتكريم أصحاب المراكز والنتائج المتميزة</p>
-          </div>
-          <div className="achievers-grid">
-            {achievers.map((x) => (
-              <article
-                className={`achiever-card ${x.image_url ? "has-photo" : "no-photo"}`}
-                key={x.id}
-              >
-                {x.image_url && (
-                  <img className="zoomable-image"
-                    loading="lazy"
-                    src={x.image_url.split("|")[0]}
-                    alt={x.title}
-                    onClick={() => setPreview({ src: x.image_url.split("|")[0], alt: x.title })}
-                  />
-                )}
-                <div>
-                  <small>طالب / طالبة متفوق</small>
-                  <h3>{x.title}</h3>
-                  <div className="achiever-metrics">
-                    {x.achiever_percentage && (
-                      <span>
-                        <b>{x.achiever_percentage}</b>النسبة
-                      </span>
-                    )}
-                    {x.achiever_average && (
-                      <span>
-                        <b>{x.achiever_average}</b>المعدل
-                      </span>
-                    )}
-                    {x.achiever_rank && (
-                      <span className="rank">
-                        <b>★</b>
-                        {x.achiever_rank}
-                      </span>
-                    )}
-                  </div>
-                  {x.body && <p>{x.body}</p>}
-                </div>
-              </article>
-            ))}
-          </div>
+          {morningAchievers.length > 0 && <AchieverRow title="متفوقو الفترة الصباحية" subtitle="طلاب مدرسة البنين" tone="morning" items={morningAchievers} preview={setPreview} />}
+          {eveningAchievers.length > 0 && <AchieverRow title="متفوقات الفترة المسائية" subtitle="طالبات مدرسة البنات" tone="evening" items={eveningAchievers} preview={setPreview} />}
+          {!morningAchievers.length&&!eveningAchievers.length&&<AchieverRow title="الطلبة المتفوقون" subtitle="لوحة التكريم" tone="morning" items={achievers} preview={setPreview} />}
         </section>
       )}
       <PublicShiftStats />
@@ -335,4 +311,12 @@ export default function PublicLanding() {
       <footer>© 2026 {school.school_name} — جميع الحقوق محفوظة</footer>
     </main>
   );
+}
+
+function AchieverRow({title,subtitle,tone,items,preview}:{title:string;subtitle:string;tone:"morning"|"evening";items:Item[];preview:(value:{src:string;alt:string}|null)=>void}){
+ return <section className={`achiever-period ${tone}`}><div className="achiever-period-heading"><div><span>{subtitle}</span><h3>{title}</h3></div><small>اسحب البطاقات لليمين أو اليسار</small></div><div className="achievers-carousel">{items.map(x=>{const photo=x.image_url.split("|")[0];return <article className={`achiever-card ${photo?"has-photo":"no-photo"}`} key={x.id}>{photo?<button type="button" className="achiever-photo" onClick={()=>preview({src:photo,alt:x.title})}><img loading="lazy" src={photo} alt={x.title}/></button>:<div className="achiever-avatar">★</div>}<div className="achiever-copy"><small>{tone==="morning"?"طالب متفوق":"طالبة متفوقة"}</small><h3>{x.title}</h3><div className="achiever-metrics">{x.achiever_percentage&&<span><b>{x.achiever_percentage}</b>النسبة</span>}{x.achiever_average&&<span><b>{x.achiever_average}</b>المعدل</span>}{x.achiever_rank&&<span className="rank"><b>★</b>{x.achiever_rank}</span>}</div>{x.body&&<p>{x.body}</p>}</div></article>})}</div></section>;
+}
+
+function HonorGroup({title,tone,items,preview}:{title:string;tone:"morning"|"evening";items:Item[];preview:(value:{src:string;alt:string}|null)=>void}){
+ return <div className={`honor-group ${tone}`}><h3>{title}</h3><div className="honor-cards">{items.map((x,index)=>{const photo=x.image_url.split("|")[0];return <article className="honor-card" key={x.id}><span className="honor-medal">{["🥇","🥈","🥉"][index]}</span>{photo?<button type="button" className="honor-photo" onClick={()=>preview({src:photo,alt:x.title})}><img loading="lazy" src={photo} alt={x.title}/></button>:<div className="honor-avatar">★</div>}<div><small>{index===0?"الأول":index===1?"الثاني":"الثالث"}</small><strong>{x.title}</strong>{x.achiever_percentage&&<b>{x.achiever_percentage}</b>}</div></article>})}</div></div>
 }
