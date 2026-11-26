@@ -1,4 +1,6 @@
+import { nitro } from "nitro/vite";
 import { sites } from "@openai/sites-vite-plugin";
+import { fileURLToPath } from "node:url";
 import vinext from "vinext";
 import { defineConfig } from "vite";
 import hostingConfig from "./.openai/hosting.json";
@@ -34,6 +36,15 @@ const localBindingConfig = {
 };
 
 export default defineConfig(async () => {
+  // Vercel builds (via Nitro) have no Cloudflare Workers runtime, so the
+  // `cloudflare:workers` import used for the D1/R2 bindings cannot resolve
+  // there. Only for Vercel builds, point it at a local shim (which leaves
+  // DB/MEDIA undefined) and add the Nitro plugin; Cloudflare builds keep
+  // using the real module and are unaffected. Vercel sets VERCEL=1 in CI;
+  // NITRO_PRESET=vercel covers local verification builds.
+  const isVercelBuild =
+    process.env.VERCEL === "1" || process.env.NITRO_PRESET === "vercel";
+
   // Keep Wrangler and Miniflare state project-local. These are non-secret tool
   // settings; application environment belongs in ignored `.env*` files.
   process.env.WRANGLER_WRITE_LOGS ??= "false";
@@ -49,11 +60,32 @@ export default defineConfig(async () => {
       : undefined,
     plugins: [
       vinext(),
+      ...(isVercelBuild
+        ? [
+            nitro({
+              // Route requests to the Vinext RSC service (see
+              // lib/nitro-renderer.ts) instead of Nitro default SSR
+              // renderer, whose handler cannot call this app RSC entry.
+              renderer: { handler: "./lib/nitro-renderer.ts" },
+            }),
+          ]
+        : []),
       sites(),
       cloudflare({
         viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
         config: localBindingConfig,
       }),
     ],
+    ...(isVercelBuild
+      ? {
+          resolve: {
+            alias: {
+              "cloudflare:workers": fileURLToPath(
+                new URL("./lib/cloudflare-workers-env.ts", import.meta.url),
+              ),
+            },
+          },
+        }
+      : {}),
   };
 });
